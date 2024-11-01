@@ -1,0 +1,32 @@
+<.header>
+  Image <%= @image.id %>
+  <:subtitle>This is a image record from your database.</:subtitle>
+  <:actions>
+    <.link patch={~p"/images/#{@image}/show/edit"} phx-click={JS.push_focus()}>
+      <.button>Edit image</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Prompt"><%= @image.prompt %></:item>
+  <:item title="Image url"><%= @image.image_url %></:item>
+</.list>
+
+<.back navigate={~p"/images"}>Back to images</.back>
+
+<.modal
+  :if={@live_action == :edit}
+  id="image-modal"
+  show
+  on_cancel={JS.patch(~p"/images/#{@image}")}
+>
+  <.live_component
+    module={ImageryWeb.ImageLive.FormComponent}
+    id={@image.id}
+    title={@page_title}
+    action={@live_action}
+    image={@image}
+    patch={~p"/images/#{@image}"}
+  />
+</.modal>

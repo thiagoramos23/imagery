@@ -1,0 +1,53 @@
+<.header>
+  Listing Images
+  <:actions>
+    <.link patch={~p"/images/new"}>
+      <.button>New Image</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="images"
+  rows={@streams.images}
+  row_click={fn {_id, image} -> JS.navigate(~p"/images/#{image}") end}
+>
+  <:col :let={{_id, image}} label="Prompt"><%= image.prompt %></:col>
+  <:col :let={{_id, image}} label="Image url">
+    <%= if is_nil(image.image_url) do %>
+      Generating...
+    <% else %>
+      <img src={image.image_url} class="w-40 h-40" />
+    <% end %>
+  </:col>
+  <:action :let={{_id, image}}>
+    <div class="sr-only">
+      <.link navigate={~p"/images/#{image}"}>Show</.link>
+    </div>
+    <.link patch={~p"/images/#{image}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, image}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: image.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal
+  :if={@live_action in [:new, :edit]}
+  id="image-modal"
+  show
+  on_cancel={JS.patch(~p"/images")}
+>
+  <.live_component
+    module={ImageryWeb.ImageLive.FormComponent}
+    id={@image.id || :new}
+    title={@page_title}
+    action={@live_action}
+    image={@image}
+    patch={~p"/images"}
+  />
+</.modal>
