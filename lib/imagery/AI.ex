@@ -15,7 +15,6 @@ defmodule Imagery.AI do
       openai
       |> Images.generate(img_req)
 
-    Logger.info("Image Generated: #{url}")
     {:ok, url}
   end
 end

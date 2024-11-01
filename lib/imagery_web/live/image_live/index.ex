@@ -4,6 +4,8 @@ defmodule ImageryWeb.ImageLive.Index do
   alias Imagery.Images
   alias Imagery.Images.Image
 
+  require Logger
+
   @impl true
   def mount(_params, _session, socket) do
     {:ok, stream(socket, :images, Images.list_images())}
@@ -33,15 +35,39 @@ defmodule ImageryWeb.ImageLive.Index do
   end
 
   @impl true
-  def handle_info({ImageryWeb.ImageLive.FormComponent, {:saved, image}}, socket) do
-    {:noreply, stream_insert(socket, :images, image)}
-  end
-
-  @impl true
   def handle_event("delete", %{"id" => id}, socket) do
     image = Images.get_image!(id)
     {:ok, _} = Images.delete_image(image)
 
     {:noreply, stream_delete(socket, :images, image)}
+  end
+
+  @impl true
+  def handle_info({ImageryWeb.ImageLive.FormComponent, {:saved, image}}, socket) do
+    dispatch_create_image_process(image)
+    {:noreply, stream_insert(socket, :images, image)}
+  end
+
+  @impl true
+  def handle_info({_ref, {:ok, %{image: image, url: url}}}, socket) do
+    case Images.update_image(image, %{image_url: url}) do
+      {:ok, image} ->
+        {:noreply, stream_insert(socket, :images, image)}
+
+      {:error, changeset} ->
+        Logger.error(inspect(changeset))
+    end
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, _type, _pid, :normal}, socket) do
+    {:noreply, socket}
+  end
+
+  defp dispatch_create_image_process(image) do
+    Task.async(fn ->
+      {:ok, url} = Imagery.AI.generate_image(image.prompt)
+      {:ok, %{image: image, url: url}}
+    end)
   end
 end

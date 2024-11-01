@@ -3,8 +3,6 @@ defmodule ImageryWeb.ImageLive.FormComponent do
 
   alias Imagery.Images
 
-  require Logger
-
   @impl true
   def render(assigns) do
     ~H"""
@@ -62,7 +60,6 @@ defmodule ImageryWeb.ImageLive.FormComponent do
   defp save_image(socket, :new, image_params) do
     case Images.create_image(image_params) do
       {:ok, image} ->
-        dispatch_create_image_process(image)
         notify_parent({:saved, image})
 
         {:noreply,
@@ -76,20 +73,4 @@ defmodule ImageryWeb.ImageLive.FormComponent do
   end
 
   defp notify_parent(msg), do: send(self(), {__MODULE__, msg})
-
-  defp dispatch_create_image_process(image) do
-    parent = self()
-
-    Task.Supervisor.start_child(Imagery.TaskSupervisor, fn ->
-      {:ok, url} = Imagery.AI.generate_image(image.prompt)
-
-      case Images.update_image(image, %{image_url: url}) do
-        {:ok, image} ->
-          send(parent, {__MODULE__, {:saved, image}})
-
-        {:error, changeset} ->
-          Logger.error(inspect(changeset))
-      end
-    end)
-  end
 end
